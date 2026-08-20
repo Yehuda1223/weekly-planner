@@ -18,13 +18,13 @@ export default function Icon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 50%, #e11d48 100%)',
-          borderRadius: '42px',
+          background: 'linear-gradient(135deg, #f97316 0%, #ea580c 50%, #e11d48 100%)',
+          borderRadius: '44px',
           fontSize: '110px',
-          boxShadow: '0 10px 25px rgba(234, 88, 12, 0.4)',
+          boxShadow: '0 12px 30px rgba(234, 88, 12, 0.45)',
         }}
       >
-        👨‍🍳
+        📅
       </div>
     ),
     {

@@ -18,12 +18,12 @@ export default function AppleIcon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 50%, #e11d48 100%)',
+          background: 'linear-gradient(135deg, #f97316 0%, #ea580c 50%, #e11d48 100%)',
           borderRadius: '40px',
           fontSize: '105px',
         }}
       >
-        👨‍🍳
+        📅
       </div>
     ),
     {
