@@ -20,6 +20,24 @@ export const metadata: Metadata = {
     icon: "/icon",
     apple: "/apple-icon",
   },
+  openGraph: {
+    title: "תכנון שבועי - ארוחות, כושר וסגנון חיים",
+    description: "אפליקציה חכמה לתכנון שבועי מלא: ניהול ארוחות ומתכונים, אימונים וכושר, דייטים ורשימת קניות",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "תכנון שבועי - לוח שנה ואורח חיים",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "תכנון שבועי - ארוחות, כושר וסגנון חיים",
+    description: "אפליקציה חכמה לתכנון שבועי מלא: ניהול ארוחות ומתכונים, אימונים וכושר, דייטים ורשימת קניות",
+    images: ["/opengraph-image"],
+  },
 };
 
 export default function RootLayout({
