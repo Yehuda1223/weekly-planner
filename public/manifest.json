@@ -1,0 +1,23 @@
+{
+  "name": "תכנון שבועי - ארוחות, כושר וסגנון חיים",
+  "short_name": "תכנון שבועי",
+  "description": "אפליקציה חכמה לתכנון שבועי מלא: ניהול ארוחות ומתכונים, אימונים וכושר, דייטים ורשימת קניות",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f97316",
+  "icons": [
+    {
+      "src": "/icon",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-icon",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
