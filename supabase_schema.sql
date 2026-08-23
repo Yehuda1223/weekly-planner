@@ -46,6 +46,23 @@ CREATE TABLE IF NOT EXISTS public.recipes (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Ensure all columns exist on recipes
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false;
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS is_shared BOOLEAN DEFAULT true;
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS group_id TEXT;
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS created_by TEXT;
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS creator_name TEXT;
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS creator_email TEXT;
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'approved';
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS approved_by TEXT;
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS ratings JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS comments JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS image_gradient TEXT;
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS prep_time TEXT DEFAULT '20 דק׳';
+
 -- 3. Meal Planner Table
 CREATE TABLE IF NOT EXISTS public.meal_planner (
   id TEXT PRIMARY KEY,
@@ -65,6 +82,20 @@ CREATE TABLE IF NOT EXISTS public.meal_planner (
   day_exercise_overrides JSONB,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Ensure all columns exist on meal_planner
+ALTER TABLE public.meal_planner ADD COLUMN IF NOT EXISTS recipe_id TEXT;
+ALTER TABLE public.meal_planner ADD COLUMN IF NOT EXISTS custom_name TEXT;
+ALTER TABLE public.meal_planner ADD COLUMN IF NOT EXISTS items JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.meal_planner ADD COLUMN IF NOT EXISTS week_offset INTEGER DEFAULT 0;
+ALTER TABLE public.meal_planner ADD COLUMN IF NOT EXISTS week_key TEXT;
+ALTER TABLE public.meal_planner ADD COLUMN IF NOT EXISTS completed BOOLEAN DEFAULT false;
+ALTER TABLE public.meal_planner ADD COLUMN IF NOT EXISTS is_shared BOOLEAN DEFAULT true;
+ALTER TABLE public.meal_planner ADD COLUMN IF NOT EXISTS group_id TEXT;
+ALTER TABLE public.meal_planner ADD COLUMN IF NOT EXISTS user_id TEXT;
+ALTER TABLE public.meal_planner ADD COLUMN IF NOT EXISTS day_notes TEXT;
+ALTER TABLE public.meal_planner ADD COLUMN IF NOT EXISTS day_photos TEXT[];
+ALTER TABLE public.meal_planner ADD COLUMN IF NOT EXISTS day_exercise_overrides JSONB;
 
 -- 4. Family Groups Table
 CREATE TABLE IF NOT EXISTS public.family_groups (
