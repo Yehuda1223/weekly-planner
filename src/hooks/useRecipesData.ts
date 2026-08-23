@@ -180,18 +180,15 @@ export function useRecipesData() {
       }
 
       try {
-        const { data: dbRecipes, error: rError } = await supabase
+        // 1. Fetch Recipes & Meal Planner
+        const { data: dbRecipes } = await supabase
           .from('recipes')
           .select('*')
           .order('title', { ascending: true });
 
-        if (rError) throw rError;
-
-        const { data: dbMeals, error: mError } = await supabase
+        const { data: dbMeals } = await supabase
           .from('meal_planner')
           .select('*');
-
-        if (mError) throw mError;
 
         if (dbRecipes && dbRecipes.length > 0) {
           setRecipes(dbRecipes);
@@ -205,35 +202,206 @@ export function useRecipesData() {
           await seedDefaultMealPlan();
         }
 
+        // 2. Fetch Family Groups & Invitations from Supabase
+        try {
+          const { data: dbGroups } = await supabase.from('family_groups').select('*');
+          if (dbGroups && dbGroups.length > 0) {
+            setGroups(dbGroups);
+            localStorage.setItem('family_groups_v1', JSON.stringify(dbGroups));
+          }
+        } catch (e) {}
+
+        try {
+          const { data: dbInvites } = await supabase.from('group_invitations').select('*');
+          if (dbInvites && dbInvites.length > 0) {
+            setInvitations(dbInvites);
+            localStorage.setItem('group_invitations_v1', JSON.stringify(dbInvites));
+          }
+        } catch (e) {}
+
+        // 3. Fetch Tasks from Supabase
+        try {
+          const { data: dbTasks } = await supabase.from('tasks').select('*');
+          if (dbTasks && dbTasks.length > 0) {
+            const formattedTasks: TaskItem[] = dbTasks.map((t: any) => ({
+              id: t.id,
+              itemType: t.item_type || t.itemType || 'task',
+              title: t.title,
+              description: t.description,
+              category: t.category,
+              priority: t.priority,
+              completed: t.completed,
+              dueDate: t.due_date || t.dueDate,
+              dueTime: t.due_time || t.dueTime,
+              assignedDay: t.assigned_day || t.assignedDay,
+              assignedMeal: t.assigned_meal || t.assignedMeal,
+              noteColor: t.note_color || t.noteColor || 'yellow',
+              isShared: t.is_shared !== undefined ? t.is_shared : (t.isShared !== undefined ? t.isShared : true),
+              groupId: t.group_id || t.groupId,
+              createdBy: t.created_by || t.createdBy,
+              createdAt: t.created_at || t.createdAt
+            }));
+            setTasks(formattedTasks);
+            localStorage.setItem('family_tasks_v1', JSON.stringify(formattedTasks));
+          }
+        } catch (e) {}
+
+        // 4. Fetch Workouts from Supabase
+        try {
+          const { data: dbWorkouts } = await supabase.from('workouts').select('*');
+          if (dbWorkouts && dbWorkouts.length > 0) {
+            const formattedWorkouts: Workout[] = dbWorkouts.map((w: any) => ({
+              id: w.id,
+              title: w.title,
+              splitGroup: w.split_group || w.splitGroup || 'אימון A',
+              type: w.type || 'strength',
+              targetMuscleGroups: w.target_muscle_groups || w.targetMuscleGroups || [],
+              notes: w.notes,
+              exercises: w.exercises || [],
+              isShared: w.is_shared !== undefined ? w.is_shared : (w.isShared !== undefined ? w.isShared : true),
+              groupId: w.group_id || w.groupId,
+              createdBy: w.created_by || w.createdBy
+            }));
+            setWorkouts(formattedWorkouts);
+            localStorage.setItem('family_workouts', JSON.stringify(formattedWorkouts));
+          }
+        } catch (e) {}
+
+        // 5. Fetch Date Spots from Supabase
+        try {
+          const { data: dbDateSpots } = await supabase.from('date_spots').select('*');
+          if (dbDateSpots && dbDateSpots.length > 0) {
+            const formattedDateSpots: DateSpot[] = dbDateSpots.map((d: any) => ({
+              id: d.id,
+              title: d.title,
+              category: d.category,
+              address: d.address,
+              wazeUrl: d.waze_url || d.wazeUrl,
+              rating: d.rating,
+              visitCount: d.visit_count !== undefined ? d.visit_count : (d.visitCount || 1),
+              notes: d.notes,
+              imageUrl: d.image_url || d.imageUrl,
+              isShared: d.is_shared !== undefined ? d.is_shared : (d.isShared !== undefined ? d.isShared : true),
+              groupId: d.group_id || d.groupId,
+              createdBy: d.created_by || d.createdBy
+            }));
+            setDateSpots(formattedDateSpots);
+            localStorage.setItem('family_date_spots', JSON.stringify(formattedDateSpots));
+          }
+        } catch (e) {}
+
         setSyncStatus('synced');
 
-        const recipeSubscription = supabase
-          .channel('recipes-realtime')
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'recipes' },
-            async () => {
-              const { data } = await supabase.from('recipes').select('*').order('title', { ascending: true });
-              if (data) setRecipes(data);
+        // 🚀 Real-time Subscriptions for Instant Multi-Device Sync
+        const multiSyncChannel = supabase
+          .channel('app-realtime-all')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'recipes' }, async () => {
+            const { data } = await supabase.from('recipes').select('*').order('title', { ascending: true });
+            if (data) setRecipes(data);
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'meal_planner' }, async () => {
+            const { data } = await supabase.from('meal_planner').select('*');
+            if (data) setMealPlan(data);
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'family_groups' }, async () => {
+            const { data } = await supabase.from('family_groups').select('*');
+            if (data) {
+              setGroups(data);
+              localStorage.setItem('family_groups_v1', JSON.stringify(data));
             }
-          )
-          .subscribe();
-
-        const mealSubscription = supabase
-          .channel('meal_planner-realtime')
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'meal_planner' },
-            async () => {
-              const { data } = await supabase.from('meal_planner').select('*');
-              if (data) setMealPlan(data);
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'group_invitations' }, async () => {
+            const { data } = await supabase.from('group_invitations').select('*');
+            if (data) {
+              setInvitations(data);
+              localStorage.setItem('group_invitations_v1', JSON.stringify(data));
             }
-          )
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, async () => {
+            const { data } = await supabase.from('tasks').select('*');
+            if (data) {
+              const formatted = data.map((t: any) => ({
+                id: t.id,
+                itemType: t.item_type || t.itemType || 'task',
+                title: t.title,
+                description: t.description,
+                category: t.category,
+                priority: t.priority,
+                completed: t.completed,
+                dueDate: t.due_date || t.dueDate,
+                dueTime: t.due_time || t.dueTime,
+                assignedDay: t.assigned_day || t.assignedDay,
+                assignedMeal: t.assigned_meal || t.assignedMeal,
+                noteColor: t.note_color || t.noteColor || 'yellow',
+                isShared: t.is_shared !== undefined ? t.is_shared : true,
+                groupId: t.group_id || t.groupId,
+                createdBy: t.created_by || t.createdBy,
+                createdAt: t.created_at || t.createdAt
+              }));
+              setTasks(formatted);
+              localStorage.setItem('family_tasks_v1', JSON.stringify(formatted));
+            }
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'workouts' }, async () => {
+            const { data } = await supabase.from('workouts').select('*');
+            if (data) {
+              const formatted = data.map((w: any) => ({
+                id: w.id,
+                title: w.title,
+                splitGroup: w.split_group || w.splitGroup || 'אימון A',
+                type: w.type || 'strength',
+                targetMuscleGroups: w.target_muscle_groups || w.targetMuscleGroups || [],
+                notes: w.notes,
+                exercises: w.exercises || [],
+                isShared: w.is_shared !== undefined ? w.is_shared : true,
+                groupId: w.group_id || w.groupId,
+                createdBy: w.created_by || w.createdBy
+              }));
+              setWorkouts(formatted);
+              localStorage.setItem('family_workouts', JSON.stringify(formatted));
+            }
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'date_spots' }, async () => {
+            const { data } = await supabase.from('date_spots').select('*');
+            if (data) {
+              const formatted = data.map((d: any) => ({
+                id: d.id,
+                title: d.title,
+                category: d.category,
+                address: d.address,
+                wazeUrl: d.waze_url || d.wazeUrl,
+                rating: d.rating,
+                visitCount: d.visit_count !== undefined ? d.visit_count : 1,
+                notes: d.notes,
+                imageUrl: d.image_url || d.imageUrl,
+                isShared: d.is_shared !== undefined ? d.is_shared : true,
+                groupId: d.group_id || d.groupId,
+                createdBy: d.created_by || d.createdBy
+              }));
+              setDateSpots(formatted);
+              localStorage.setItem('family_date_spots', JSON.stringify(formatted));
+            }
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, async () => {
+            const { data } = await supabase.from('profiles').select('*');
+            if (data) {
+              const formatted: UserProfile[] = data.map((p: any) => ({
+                id: p.id,
+                email: p.email,
+                displayName: p.display_name || p.email.split('@')[0],
+                role: p.role,
+                isSuperAdmin: p.is_super_admin || isSuperAdminEmail(p.email),
+                isVerified: p.is_verified ?? true,
+                isGuest: false
+              }));
+              setRegisteredUsers(formatted);
+              localStorage.setItem('registered_users', JSON.stringify(formatted));
+            }
+          })
           .subscribe();
 
         return () => {
-          supabase.removeChannel(recipeSubscription);
-          supabase.removeChannel(mealSubscription);
+          supabase.removeChannel(multiSyncChannel);
         };
       } catch (err) {
         console.warn('Supabase DB error, falling back to local storage:', err);
@@ -473,6 +641,20 @@ export function useRecipesData() {
     };
 
     updateRecipeLocally(updatedRecipe);
+
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      try {
+        await supabase.from('recipes').update({
+          status: 'approved',
+          approvedBy: updatedRecipe.approvedBy,
+          approvedAt: updatedRecipe.approvedAt,
+          rejectionReason: null
+        }).eq('id', recipeId);
+      } catch (e) {
+        console.error('Failed to sync approval to Supabase:', e);
+      }
+    }
+
     alert(`✅ המתכון "${target.title}" אושר בהצלחה ופורסם!`);
   };
 
@@ -505,6 +687,18 @@ export function useRecipesData() {
     };
 
     updateRecipeLocally(updatedRecipe);
+
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      try {
+        await supabase.from('recipes').update({
+          status: 'rejected',
+          rejectionReason: promptReason || null
+        }).eq('id', recipeId);
+      } catch (e) {
+        console.error('Failed to sync rejection to Supabase:', e);
+      }
+    }
+
     alert(`המתכון "${target.title}" נדחה.`);
   };
 
@@ -705,6 +899,13 @@ export function useRecipesData() {
     });
 
     saveRecipesSafe(updated);
+
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      const target = updated.find(r => r.id === recipeId);
+      if (target) {
+        supabase.from('recipes').update({ ratings: target.ratings }).eq('id', recipeId).then();
+      }
+    }
   };
 
   // 💬 Comment Handler
@@ -731,6 +932,13 @@ export function useRecipesData() {
     });
 
     saveRecipesSafe(updated);
+
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      const target = updated.find(r => r.id === recipeId);
+      if (target) {
+        supabase.from('recipes').update({ comments: target.comments }).eq('id', recipeId).then();
+      }
+    }
   };
 
   // ↩️ Reply to Comment Handler
@@ -765,6 +973,13 @@ export function useRecipesData() {
     });
 
     saveRecipesSafe(updated);
+
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      const target = updated.find(r => r.id === recipeId);
+      if (target) {
+        supabase.from('recipes').update({ comments: target.comments }).eq('id', recipeId).then();
+      }
+    }
   };
 
   const saveMealPlanSafe = async (updatedPlan: MealPlanItem[]) => {
@@ -1176,40 +1391,94 @@ export function useRecipesData() {
   };
 
   // 🥂 Date Night CRUD Handlers
-  const handleAddDateSpot = (spotData: Omit<DateSpot, 'id'>) => {
+  const handleAddDateSpot = async (spotData: Omit<DateSpot, 'id'>) => {
     if (checkGuestOrUnauthorized('להוסיף מקומות לדייט')) return;
     const newSpot: DateSpot = {
       ...spotData,
-      id: 'ds_' + Date.now()
+      id: 'd_' + Date.now(),
+      createdBy: currentUser?.id
     };
     const updated = [newSpot, ...dateSpots];
     setDateSpots(updated);
     localStorage.setItem('family_date_spots', JSON.stringify(updated));
+
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        await supabase.from('date_spots').upsert({
+          id: newSpot.id,
+          title: newSpot.title,
+          category: newSpot.category,
+          address: newSpot.address,
+          waze_url: newSpot.wazeUrl,
+          rating: newSpot.rating,
+          visit_count: newSpot.visitCount,
+          notes: newSpot.notes,
+          image_url: newSpot.imageUrl,
+          is_shared: newSpot.isShared !== undefined ? newSpot.isShared : true,
+          group_id: newSpot.groupId,
+          created_by: newSpot.createdBy
+        });
+      }
+    } catch (e) {}
   };
 
-  const handleUpdateDateSpot = (id: string, updatedData: Omit<DateSpot, 'id'>) => {
+  const handleUpdateDateSpot = async (id: string, updatedData: Omit<DateSpot, 'id'>) => {
     if (checkGuestOrUnauthorized('לערוך מקומות לדייט')) return;
     const updated = dateSpots.map(s => s.id === id ? { ...updatedData, id } : s);
     setDateSpots(updated);
     localStorage.setItem('family_date_spots', JSON.stringify(updated));
+
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        await supabase.from('date_spots').upsert({
+          id,
+          title: updatedData.title,
+          category: updatedData.category,
+          address: updatedData.address,
+          waze_url: updatedData.wazeUrl,
+          rating: updatedData.rating,
+          visit_count: updatedData.visitCount,
+          notes: updatedData.notes,
+          image_url: updatedData.imageUrl,
+          is_shared: updatedData.isShared !== undefined ? updatedData.isShared : true,
+          group_id: updatedData.groupId,
+          created_by: updatedData.createdBy
+        });
+      }
+    } catch (e) {}
   };
 
-  const handleDeleteDateSpot = (id: string) => {
+  const handleDeleteDateSpot = async (id: string) => {
     if (checkGuestOrUnauthorized('למחוק מקומות לדייט')) return;
     const updated = dateSpots.filter(s => s.id !== id);
     setDateSpots(updated);
     localStorage.setItem('family_date_spots', JSON.stringify(updated));
+
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        await supabase.from('date_spots').delete().eq('id', id);
+      }
+    } catch (e) {}
   };
 
-  const handleIncrementVisitCount = (id: string) => {
+  const handleIncrementVisitCount = async (id: string) => {
     if (checkGuestOrUnauthorized('לעדכן ביקורים בדייטים')) return;
     const updated = dateSpots.map(s => s.id === id ? { ...s, visitCount: s.visitCount + 1 } : s);
     setDateSpots(updated);
     localStorage.setItem('family_date_spots', JSON.stringify(updated));
+
+    const target = updated.find(s => s.id === id);
+    if (target) {
+      try {
+        if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+          await supabase.from('date_spots').update({ visit_count: target.visitCount }).eq('id', id);
+        }
+      } catch (e) {}
+    }
   };
 
   // 📝 Tasks & Notes Handlers
-  const handleAddTask = (taskData: Omit<TaskItem, 'id' | 'createdAt'>) => {
+  const handleAddTask = async (taskData: Omit<TaskItem, 'id' | 'createdAt'>) => {
     if (checkGuestOrUnauthorized('להוסיף מטלות ופתקים')) return;
 
     const newTask: TaskItem = {
@@ -1228,6 +1497,30 @@ export function useRecipesData() {
       console.error('Failed to save tasks to localStorage:', e);
     }
 
+    // Sync to Supabase
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        await supabase.from('tasks').upsert({
+          id: newTask.id,
+          item_type: newTask.itemType || 'task',
+          title: newTask.title,
+          description: newTask.description,
+          category: newTask.category,
+          priority: newTask.priority,
+          completed: newTask.completed,
+          due_date: newTask.dueDate,
+          due_time: newTask.dueTime,
+          assigned_day: newTask.assignedDay,
+          assigned_meal: newTask.assignedMeal,
+          note_color: newTask.noteColor || 'yellow',
+          is_shared: newTask.isShared !== undefined ? newTask.isShared : true,
+          group_id: newTask.groupId,
+          created_by: newTask.createdBy,
+          created_at: newTask.createdAt
+        });
+      }
+    } catch (e) {}
+
     // If assigned to weekly planner day & slot, also insert into mealPlan
     if (newTask.assignedDay && newTask.assignedMeal) {
       handleAssignMeal(
@@ -1239,7 +1532,7 @@ export function useRecipesData() {
     }
   };
 
-  const handleUpdateTask = (id: string, updatedData: Partial<TaskItem>) => {
+  const handleUpdateTask = async (id: string, updatedData: Partial<TaskItem>) => {
     if (checkGuestOrUnauthorized('לערוך מטלות ופתקים')) return;
 
     const updatedTasks = tasks.map(task => 
@@ -1251,9 +1544,34 @@ export function useRecipesData() {
     } catch (e) {
       console.error('Failed to save tasks to localStorage:', e);
     }
+
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        const target = updatedTasks.find(t => t.id === id);
+        if (target) {
+          await supabase.from('tasks').upsert({
+            id: target.id,
+            item_type: target.itemType || 'task',
+            title: target.title,
+            description: target.description,
+            category: target.category,
+            priority: target.priority,
+            completed: target.completed,
+            due_date: target.dueDate,
+            due_time: target.dueTime,
+            assigned_day: target.assignedDay,
+            assigned_meal: target.assignedMeal,
+            note_color: target.noteColor || 'yellow',
+            is_shared: target.isShared !== undefined ? target.isShared : true,
+            group_id: target.groupId,
+            created_by: target.createdBy
+          });
+        }
+      }
+    } catch (e) {}
   };
 
-  const handleDeleteTask = (id: string) => {
+  const handleDeleteTask = async (id: string) => {
     if (checkGuestOrUnauthorized('למחוק מטלות')) return;
 
     if (!confirm('האם למחוק מטלה זו?')) return;
@@ -1265,9 +1583,15 @@ export function useRecipesData() {
     } catch (e) {
       console.error('Failed to save tasks to localStorage:', e);
     }
+
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        await supabase.from('tasks').delete().eq('id', id);
+      }
+    } catch (e) {}
   };
 
-  const handleToggleTaskCompleted = (id: string) => {
+  const handleToggleTaskCompleted = async (id: string) => {
     if (checkGuestOrUnauthorized('לסמן השלמת מטלות')) return;
 
     const updatedTasks = tasks.map(task => 
@@ -1278,6 +1602,15 @@ export function useRecipesData() {
       localStorage.setItem('family_tasks_v1', JSON.stringify(updatedTasks));
     } catch (e) {
       console.error('Failed to save tasks to localStorage:', e);
+    }
+
+    const target = updatedTasks.find(t => t.id === id);
+    if (target) {
+      try {
+        if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+          await supabase.from('tasks').update({ completed: target.completed }).eq('id', id);
+        }
+      } catch (e) {}
     }
   };
 
@@ -1534,11 +1867,26 @@ export function useRecipesData() {
     setCurrentUser(profile);
     localStorage.setItem('app_current_user', JSON.stringify(profile));
 
+    // Sync verified profile to Supabase
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        await supabase.from('profiles').upsert({
+          id: profile.id,
+          email: profile.email,
+          display_name: profile.displayName,
+          role: profile.role,
+          is_super_admin: profile.isSuperAdmin,
+          is_verified: true,
+          updated_at: new Date().toISOString()
+        });
+      }
+    } catch (e) {}
+
     return { success: true, message: '🎉 החשבון אומת והופעל בהצלחה! ברוך הבא למתכנן השבועי!' };
   };
 
   // ✅ Account Verification Handler (Activated when user clicks link in email)
-  const handleVerifyAccount = (email: string, token: string): { success: boolean; message: string } => {
+  const handleVerifyAccount = async (email: string, token: string): Promise<{ success: boolean; message: string }> => {
     const registeredUsersList = JSON.parse(localStorage.getItem('registered_users') || '[]');
     const userIndex = registeredUsersList.findIndex((u: any) => u.email?.toLowerCase() === email.trim().toLowerCase());
 
@@ -1570,6 +1918,20 @@ export function useRecipesData() {
 
     setCurrentUser(profile);
     localStorage.setItem('app_current_user', JSON.stringify(profile));
+
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        await supabase.from('profiles').upsert({
+          id: profile.id,
+          email: profile.email,
+          display_name: profile.displayName,
+          role: profile.role,
+          is_super_admin: profile.isSuperAdmin,
+          is_verified: true,
+          updated_at: new Date().toISOString()
+        });
+      }
+    } catch (e) {}
 
     return { success: true, message: '🎉 חשבונך אומת והופעל בהצלחה! ברוך הבא למתכנן השבועי!' };
   };
@@ -1814,7 +2176,7 @@ export function useRecipesData() {
   }, [invitations, currentUser]);
 
   // 👥 Create Group (with optional initial members to invite)
-  const handleCreateGroup = (groupName: string, initialInviteEmails: string[] = []) => {
+  const handleCreateGroup = async (groupName: string, initialInviteEmails: string[] = []) => {
     if (!currentUser) {
       alert('יש להתחבר כדי ליצור קבוצה');
       return;
@@ -1844,6 +2206,20 @@ export function useRecipesData() {
     localStorage.setItem('family_groups_v1', JSON.stringify(updatedGroups));
     setActiveGroupId(newGroup.id);
 
+    // Sync group to Supabase
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        await supabase.from('family_groups').upsert({
+          id: newGroup.id,
+          name: newGroup.name,
+          created_by: newGroup.createdBy,
+          created_by_name: newGroup.createdByName,
+          members: newGroup.members,
+          created_at: newGroup.createdAt
+        });
+      }
+    } catch (e) {}
+
     // Create invitations for each invited email
     if (initialInviteEmails.length > 0) {
       const newInvites: GroupInvitation[] = initialInviteEmails.map((email, idx) => ({
@@ -1860,6 +2236,24 @@ export function useRecipesData() {
       const updatedInvitations = [...invitations, ...newInvites];
       setInvitations(updatedInvitations);
       localStorage.setItem('group_invitations_v1', JSON.stringify(updatedInvitations));
+
+      // Sync invitations to Supabase
+      try {
+        if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+          await supabase.from('group_invitations').upsert(
+            newInvites.map(inv => ({
+              id: inv.id,
+              group_id: inv.groupId,
+              group_name: inv.groupName,
+              invited_by_user_id: inv.invitedByUserId,
+              invited_by_name: inv.invitedByName,
+              invited_user_email: inv.invitedUserEmail,
+              status: inv.status,
+              created_at: inv.createdAt
+            }))
+          );
+        }
+      } catch (e) {}
     }
 
     const updatedUser = {
@@ -1872,10 +2266,16 @@ export function useRecipesData() {
   };
 
   // 🗑️ Cancel/Delete Sent Invitation
-  const handleCancelInvitation = (invitationId: string) => {
+  const handleCancelInvitation = async (invitationId: string) => {
     const updated = invitations.filter(i => i.id !== invitationId);
     setInvitations(updated);
     localStorage.setItem('group_invitations_v1', JSON.stringify(updated));
+
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        await supabase.from('group_invitations').delete().eq('id', invitationId);
+      }
+    } catch (e) {}
   };
 
   // 👥 Switch Active Group
@@ -1889,7 +2289,7 @@ export function useRecipesData() {
   };
 
   // ✉️ Invite User to Group
-  const handleInviteToGroup = (groupId: string, targetEmail: string) => {
+  const handleInviteToGroup = async (groupId: string, targetEmail: string) => {
     if (!currentUser) return;
     const trimmedEmail = targetEmail.trim().toLowerCase();
     if (!trimmedEmail) {
@@ -1926,11 +2326,28 @@ export function useRecipesData() {
     const updatedInvitations = [...invitations, newInvitation];
     setInvitations(updatedInvitations);
     localStorage.setItem('group_invitations_v1', JSON.stringify(updatedInvitations));
+
+    // Sync to Supabase
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        await supabase.from('group_invitations').upsert({
+          id: newInvitation.id,
+          group_id: newInvitation.groupId,
+          group_name: newInvitation.groupName,
+          invited_by_user_id: newInvitation.invitedByUserId,
+          invited_by_name: newInvitation.invitedByName,
+          invited_user_email: newInvitation.invitedUserEmail,
+          status: newInvitation.status,
+          created_at: newInvitation.createdAt
+        });
+      }
+    } catch (e) {}
+
     alert(`ההזמנה לקבוצה "${group.name}" נשלחה בהצלחה ל-${trimmedEmail}!`);
   };
 
   // 🔔 Respond to Invitation (Accept / Decline)
-  const handleRespondInvitation = (invitationId: string, accept: boolean) => {
+  const handleRespondInvitation = async (invitationId: string, accept: boolean) => {
     if (!currentUser) return;
 
     const inv = invitations.find(i => i.id === invitationId);
@@ -1942,12 +2359,23 @@ export function useRecipesData() {
     setInvitations(updatedInvitations);
     localStorage.setItem('group_invitations_v1', JSON.stringify(updatedInvitations));
 
+    // Sync invitation status to Supabase
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        await supabase.from('group_invitations').update({ status: accept ? 'accepted' : 'declined' }).eq('id', invitationId);
+      }
+    } catch (e) {}
+
     if (accept) {
+      let targetUpdatedGroup: FamilyGroup | null = null;
       const updatedGroups = groups.map(g => {
         if (g.id === inv.groupId) {
           const alreadyMember = g.members?.some(m => m.userId === currentUser.id || m.email?.toLowerCase() === currentUser.email.toLowerCase());
-          if (alreadyMember) return g;
-          return {
+          if (alreadyMember) {
+            targetUpdatedGroup = g;
+            return g;
+          }
+          const updated = {
             ...g,
             members: [
               ...(g.members || []),
@@ -1961,6 +2389,8 @@ export function useRecipesData() {
               }
             ]
           };
+          targetUpdatedGroup = updated;
+          return updated;
         }
         return g;
       });
@@ -1968,6 +2398,23 @@ export function useRecipesData() {
       setGroups(updatedGroups);
       localStorage.setItem('family_groups_v1', JSON.stringify(updatedGroups));
       setActiveGroupId(inv.groupId);
+
+      // Sync updated group to Supabase
+      if (targetUpdatedGroup) {
+        try {
+          if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+            await supabase.from('family_groups').upsert({
+              id: (targetUpdatedGroup as FamilyGroup).id,
+              name: (targetUpdatedGroup as FamilyGroup).name,
+              created_by: (targetUpdatedGroup as FamilyGroup).createdBy,
+              created_by_name: (targetUpdatedGroup as FamilyGroup).createdByName,
+              members: (targetUpdatedGroup as FamilyGroup).members,
+              created_at: (targetUpdatedGroup as FamilyGroup).createdAt
+            });
+          }
+        } catch (e) {}
+      }
+
       alert(`🎉 הצטרפת בהצלחה לקבוצה "${inv.groupName}"!`);
     } else {
       alert(`ההזמנה לקבוצה "${inv.groupName}" נדחתה.`);
@@ -1975,7 +2422,7 @@ export function useRecipesData() {
   };
 
   // 🛡️ Remove Group Member (Group Admin or Super Admin only)
-  const handleRemoveGroupMember = (groupId: string, memberUserId: string) => {
+  const handleRemoveGroupMember = async (groupId: string, memberUserId: string) => {
     const group = groups.find(g => g.id === groupId);
     if (!group || !currentUser) return;
 
@@ -1990,22 +2437,39 @@ export function useRecipesData() {
       return;
     }
 
+    let updatedTargetGroup: FamilyGroup | null = null;
     const updatedGroups = groups.map(g => {
       if (g.id === groupId) {
-        return {
+        const updated = {
           ...g,
           members: (g.members || []).filter(m => m.userId !== memberUserId)
         };
+        updatedTargetGroup = updated;
+        return updated;
       }
       return g;
     });
 
     setGroups(updatedGroups);
     localStorage.setItem('family_groups_v1', JSON.stringify(updatedGroups));
+
+    if (updatedTargetGroup) {
+      try {
+        if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+          await supabase.from('family_groups').upsert({
+            id: (updatedTargetGroup as FamilyGroup).id,
+            name: (updatedTargetGroup as FamilyGroup).name,
+            created_by: (updatedTargetGroup as FamilyGroup).createdBy,
+            created_by_name: (updatedTargetGroup as FamilyGroup).createdByName,
+            members: (updatedTargetGroup as FamilyGroup).members
+          });
+        }
+      } catch (e) {}
+    }
   };
 
   // 🔐 Update Group Member Permissions (Group Admin or Super Admin)
-  const handleUpdateGroupPermissions = (groupId: string, memberUserId: string, perms: CategoryPermissions) => {
+  const handleUpdateGroupPermissions = async (groupId: string, memberUserId: string, perms: CategoryPermissions) => {
     const group = groups.find(g => g.id === groupId);
     if (!group || !currentUser) return;
 
@@ -2015,22 +2479,39 @@ export function useRecipesData() {
       return;
     }
 
+    let updatedTargetGroup: FamilyGroup | null = null;
     const updatedGroups = groups.map(g => {
       if (g.id === groupId) {
-        return {
+        const updated = {
           ...g,
           members: (g.members || []).map(m => m.userId === memberUserId ? { ...m, permissions: perms } : m)
         };
+        updatedTargetGroup = updated;
+        return updated;
       }
       return g;
     });
 
     setGroups(updatedGroups);
     localStorage.setItem('family_groups_v1', JSON.stringify(updatedGroups));
+
+    if (updatedTargetGroup) {
+      try {
+        if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+          await supabase.from('family_groups').upsert({
+            id: (updatedTargetGroup as FamilyGroup).id,
+            name: (updatedTargetGroup as FamilyGroup).name,
+            created_by: (updatedTargetGroup as FamilyGroup).createdBy,
+            created_by_name: (updatedTargetGroup as FamilyGroup).createdByName,
+            members: (updatedTargetGroup as FamilyGroup).members
+          });
+        }
+      } catch (e) {}
+    }
   };
 
   // 🗑️ Delete Group (Creator or Super Admin only)
-  const handleDeleteGroup = (groupId: string) => {
+  const handleDeleteGroup = async (groupId: string) => {
     const group = groups.find(g => g.id === groupId);
     if (!group || !currentUser) return;
 
@@ -2048,6 +2529,12 @@ export function useRecipesData() {
     if (activeGroupId === groupId) {
       setActiveGroupId(null);
     }
+
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        await supabase.from('family_groups').delete().eq('id', groupId);
+      }
+    } catch (e) {}
   };
 
   // 🔐 DATA ISOLATION & GROUP SCOPING HELPER

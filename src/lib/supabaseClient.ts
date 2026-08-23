@@ -1,7 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project-id.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
+let supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
+
+// Auto-sanitize if anon key has accidental prefix before JWT
+if (supabaseAnonKey.includes('eyJhbGciOi')) {
+  supabaseAnonKey = supabaseAnonKey.slice(supabaseAnonKey.indexOf('eyJhbGciOi'));
+}
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
   if (typeof window !== 'undefined') {
@@ -12,3 +17,4 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_A
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
