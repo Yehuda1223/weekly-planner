@@ -141,19 +141,38 @@ CREATE TABLE IF NOT EXISTS public.tasks (
 );
 
 -- ==============================================================================
--- 🚀 Enable Realtime on all tables
+-- 🚀 Enable Realtime on all tables (Safe Idempotent Check)
 -- ==============================================================================
-ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.recipes;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.meal_planner;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.family_groups;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.group_invitations;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.workouts;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.date_spots;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'profiles') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'recipes') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.recipes;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'meal_planner') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.meal_planner;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'family_groups') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.family_groups;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'group_invitations') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.group_invitations;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'workouts') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.workouts;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'date_spots') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.date_spots;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'tasks') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks;
+  END IF;
+END $$;
 
 -- ==============================================================================
--- 🔒 Enable Public / Anon Access for Full Sync
+-- 🔒 Enable Public / Anon Access for Full Sync (Safe Idempotent Policies)
 -- ==============================================================================
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.recipes ENABLE ROW LEVEL SECURITY;
@@ -164,11 +183,26 @@ ALTER TABLE public.workouts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.date_spots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Allow public read-write for all" ON public.profiles;
 CREATE POLICY "Allow public read-write for all" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public read-write for all" ON public.recipes;
 CREATE POLICY "Allow public read-write for all" ON public.recipes FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public read-write for all" ON public.meal_planner;
 CREATE POLICY "Allow public read-write for all" ON public.meal_planner FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public read-write for all" ON public.family_groups;
 CREATE POLICY "Allow public read-write for all" ON public.family_groups FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public read-write for all" ON public.group_invitations;
 CREATE POLICY "Allow public read-write for all" ON public.group_invitations FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public read-write for all" ON public.workouts;
 CREATE POLICY "Allow public read-write for all" ON public.workouts FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public read-write for all" ON public.date_spots;
 CREATE POLICY "Allow public read-write for all" ON public.date_spots FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public read-write for all" ON public.tasks;
 CREATE POLICY "Allow public read-write for all" ON public.tasks FOR ALL USING (true) WITH CHECK (true);

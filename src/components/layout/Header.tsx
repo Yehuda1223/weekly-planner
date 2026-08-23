@@ -72,6 +72,41 @@ export const Header: React.FC<HeaderProps> = ({
         {/* User Badge, Settings & Group Actions Container */}
         <div className="flex items-center gap-1.5">
           
+          {/* Cloud Sync Status Indicator */}
+          <div
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black border transition-all ${
+              syncStatus === 'synced'
+                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/60'
+                : syncStatus === 'checking'
+                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700/60'
+                : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-700'
+            }`}
+            title={
+              syncStatus === 'synced'
+                ? 'מסונכרן לענן בזמן אמת (Supabase Live)'
+                : syncStatus === 'checking'
+                ? 'בודק חיבור למסד נתונים...'
+                : 'שמירה מקומית (יש לבצע ריענון שרת)'
+            }
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                syncStatus === 'synced'
+                  ? 'bg-emerald-500 animate-pulse'
+                  : syncStatus === 'checking'
+                  ? 'bg-amber-500 animate-ping'
+                  : 'bg-slate-400'
+              }`}
+            />
+            <span className="font-extrabold hidden xs:inline">
+              {syncStatus === 'synced'
+                ? 'מסונכרן לענן'
+                : syncStatus === 'checking'
+                ? 'בודק חיבור...'
+                : 'מקומי'}
+            </span>
+          </div>
+
           {/* Notifications / Invitations Bell Button */}
           {pendingInvitationsCount > 0 && (
             <button
