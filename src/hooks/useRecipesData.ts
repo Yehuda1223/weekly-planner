@@ -339,11 +339,67 @@ export function useRecipesData() {
           }
         } catch (e) {}
 
+        // 6. Sync and Fetch Registered Profiles from Supabase
+        try {
+          // Pre-seed known core family profiles if empty
+          await supabase.from('profiles').upsert([
+            {
+              id: 'u_yehuda_admin',
+              email: 'yapexweb.service@gmail.com',
+              display_name: 'יהודה זילבר',
+              role: 'admin',
+              is_super_admin: true,
+              is_verified: true,
+              updated_at: new Date().toISOString()
+            },
+            {
+              id: 'u_tehila_member',
+              email: 't0548459860@gmail.com',
+              display_name: 'תהילה',
+              role: 'user',
+              is_super_admin: false,
+              is_verified: true,
+              updated_at: new Date().toISOString()
+            }
+          ]);
+
+          const { data: dbProfiles } = await supabase.from('profiles').select('*');
+          if (dbProfiles && dbProfiles.length > 0) {
+            const formattedProfiles: UserProfile[] = dbProfiles.map((p: any) => ({
+              id: p.id,
+              email: p.email,
+              displayName: p.display_name || p.displayName || p.email.split('@')[0],
+              role: p.role,
+              isSuperAdmin: p.is_super_admin || isSuperAdminEmail(p.email),
+              isVerified: p.is_verified ?? true,
+              isGuest: false
+            }));
+            setRegisteredUsers(formattedProfiles);
+            localStorage.setItem('registered_users', JSON.stringify(formattedProfiles));
+          }
+        } catch (e) {}
+
         setSyncStatus('synced');
 
         // 🚀 Real-time Subscriptions for Instant Multi-Device Sync
         const multiSyncChannel = supabase
           .channel('app-realtime-all')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, async () => {
+            const { data } = await supabase.from('profiles').select('*');
+            if (data && data.length > 0) {
+              const formattedProfiles: UserProfile[] = data.map((p: any) => ({
+                id: p.id,
+                email: p.email,
+                displayName: p.display_name || p.displayName || p.email.split('@')[0],
+                role: p.role,
+                isSuperAdmin: p.is_super_admin || isSuperAdminEmail(p.email),
+                isVerified: p.is_verified ?? true,
+                isGuest: false
+              }));
+              setRegisteredUsers(formattedProfiles);
+              localStorage.setItem('registered_users', JSON.stringify(formattedProfiles));
+            }
+          })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'recipes' }, async () => {
             const { data } = await supabase.from('recipes').select('*').order('title', { ascending: true });
             if (data) {
@@ -2193,7 +2249,28 @@ export function useRecipesData() {
     }
   };
 
-  const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>([]);
+  const DEFAULT_REGISTERED_USERS: UserProfile[] = [
+    {
+      id: 'u_yehuda_admin',
+      email: 'yapexweb.service@gmail.com',
+      displayName: 'יהודה זילבר',
+      role: 'admin',
+      isSuperAdmin: true,
+      isGuest: false,
+      isVerified: true
+    },
+    {
+      id: 'u_tehila_member',
+      email: 't0548459860@gmail.com',
+      displayName: 'תהילה',
+      role: 'user',
+      isSuperAdmin: false,
+      isGuest: false,
+      isVerified: true
+    }
+  ];
+
+  const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>(DEFAULT_REGISTERED_USERS);
   const [enabledTabs, setEnabledTabs] = useState<EnabledTabsConfig>({
     recipes: true,
     planner: true,
@@ -2204,14 +2281,43 @@ export function useRecipesData() {
   });
 
   useEffect(() => {
-    // 1. Load local users
+    // 1. Load local users and merge with core family defaults
     const loadedLocal = JSON.parse(localStorage.getItem('registered_users') || '[]');
-    setRegisteredUsers(loadedLocal);
+    const mergedMap = new Map<string, UserProfile>();
+    DEFAULT_REGISTERED_USERS.forEach(u => mergedMap.set(u.email.toLowerCase(), u));
+    loadedLocal.forEach((u: UserProfile) => { if (u.email) mergedMap.set(u.email.toLowerCase(), u); });
+    const initialMerged = Array.from(mergedMap.values());
+    setRegisteredUsers(initialMerged);
+    localStorage.setItem('registered_users', JSON.stringify(initialMerged));
 
     // 2. Fetch all registered users from Supabase profiles if table exists
     async function syncCloudProfiles() {
       try {
         if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+          // Pre-seed core family profiles to Supabase
+          try {
+            await supabase.from('profiles').upsert([
+              {
+                id: 'u_yehuda_admin',
+                email: 'yapexweb.service@gmail.com',
+                display_name: 'יהודה זילבר',
+                role: 'admin',
+                is_super_admin: true,
+                is_verified: true,
+                updated_at: new Date().toISOString()
+              },
+              {
+                id: 'u_tehila_member',
+                email: 't0548459860@gmail.com',
+                display_name: 'תהילה',
+                role: 'user',
+                is_super_admin: false,
+                is_verified: true,
+                updated_at: new Date().toISOString()
+              }
+            ]);
+          } catch (e) {}
+
           const { data: profiles, error } = await supabase.from('profiles').select('*');
           if (!error && profiles && profiles.length > 0) {
             const formatted: UserProfile[] = profiles.map((p: any) => ({
@@ -2225,8 +2331,6 @@ export function useRecipesData() {
             }));
 
             // Merge local and cloud profiles without duplicates
-            const mergedMap = new Map<string, UserProfile>();
-            loadedLocal.forEach((u: UserProfile) => { if (u.email) mergedMap.set(u.email.toLowerCase(), u); });
             formatted.forEach((u: UserProfile) => { if (u.email) mergedMap.set(u.email.toLowerCase(), u); });
 
             const mergedList = Array.from(mergedMap.values());
@@ -2719,38 +2823,29 @@ export function useRecipesData() {
     if (isSystemDefault) return true;
 
     // 6. Public Community Recipes: visible only if approved (or legacy undefined)
-    if (item.is_public === true) {
+    const isPublicRecipe = item.is_public === true || (item as any).isPublic === true;
+    if (isPublicRecipe) {
       return item.status === 'approved' || item.status === undefined;
     }
 
-    // 7. Active Group items:
-    if (activeGroup) {
-      const isTargetGroup = item.groupId === activeGroup.id;
-      const isGroupAdmin = activeGroup.createdBy === currentUser.id;
+    // 7. Group items (either active group, or any group user is member of):
+    const userGroups = groups.filter(g => 
+      g.createdBy === currentUser.id ||
+      g.members?.some(m => m.userId === currentUser.id || (currentUser.email && m.email?.toLowerCase() === currentUser.email.toLowerCase()))
+    );
 
-      // Group Admin can see pending_group_admin items for their group to review/approve them
-      if (isTargetGroup && isGroupAdmin && item.status === 'pending_group_admin') {
-        return true;
-      }
-
-      // Group members can only see approved (or legacy undefined) shared items
+    const isMemberOfItemGroup = userGroups.some(g => g.id === item.groupId);
+    if (isMemberOfItemGroup && item.isShared !== false) {
       const isApprovedForGroup = item.status === 'approved' || item.status === undefined;
-
-      if (isTargetGroup && item.isShared !== false && isApprovedForGroup) {
-        return true;
-      }
-
-      const isCreatedByGroupMember = activeGroup.members?.some(m => 
-        (item.createdBy && m.userId === item.createdBy) ||
-        (item.userId && m.userId === item.userId) ||
-        (item.creatorEmail && m.email?.toLowerCase() === item.creatorEmail.toLowerCase())
-      );
-      if (isCreatedByGroupMember && item.isShared !== false && isApprovedForGroup) {
-        return true;
-      }
+      return isApprovedForGroup;
     }
 
-    // 8. Otherwise: Hidden from this user!
+    // 8. Shared items created without a specific group (shared with all family):
+    if (item.isShared !== false && !item.groupId) {
+      return true;
+    }
+
+    // 9. Otherwise: Hidden from this user!
     return false;
   };
 

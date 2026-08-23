@@ -67,8 +67,9 @@ export async function GET() {
     return NextResponse.json({
       status: 'fatal_error',
       error: err?.message || String(err),
+      stack: err?.stack || null,
       diagnostics
-    }, { status: 500 });
+    });
   }
 }
 
