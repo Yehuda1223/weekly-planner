@@ -191,13 +191,44 @@ export function useRecipesData() {
           .select('*');
 
         if (dbRecipes && dbRecipes.length > 0) {
-          setRecipes(dbRecipes);
+          const formattedRecipes: Recipe[] = dbRecipes.map((r: any) => ({
+            ...r,
+            prepTime: r.prep_time || r.prepTime,
+            imageUrl: r.image_url || r.imageUrl,
+            imageGradient: r.image_gradient || r.imageGradient,
+            isPublic: r.is_public !== undefined ? r.is_public : r.isPublic,
+            isShared: r.is_shared !== undefined ? r.is_shared : (r.isShared !== undefined ? r.isShared : true),
+            groupId: r.group_id || r.groupId,
+            createdBy: r.created_by || r.createdBy,
+            creatorName: r.creator_name || r.creatorName,
+            creatorEmail: r.creator_email || r.creatorEmail,
+            approvedBy: r.approved_by || r.approvedBy,
+            approvedAt: r.approved_at || r.approvedAt
+          }));
+          setRecipes(formattedRecipes);
         } else {
           await seedDefaultRecipes();
         }
 
         if (dbMeals && dbMeals.length > 0) {
-          setMealPlan(dbMeals);
+          const formattedMeals: MealPlanItem[] = dbMeals.map((m: any) => ({
+            id: m.id,
+            day: m.day,
+            meal: m.meal,
+            recipeId: m.recipe_id || m.recipeId || '',
+            customName: m.custom_name || m.customName || '',
+            items: m.items || [],
+            weekOffset: m.week_offset !== undefined ? m.week_offset : (m.weekOffset || 0),
+            weekKey: m.week_key || m.weekKey || getWeekKey(0),
+            completed: Boolean(m.completed),
+            isShared: m.is_shared !== undefined ? m.is_shared : (m.isShared !== undefined ? m.isShared : true),
+            groupId: m.group_id || m.groupId,
+            userId: m.user_id || m.userId,
+            dayNotes: m.day_notes || m.dayNotes,
+            dayPhotos: m.day_photos || m.dayPhotos,
+            dayExerciseOverrides: m.day_exercise_overrides || m.dayExerciseOverrides
+          }));
+          setMealPlan(formattedMeals);
         } else {
           await seedDefaultMealPlan();
         }
@@ -206,16 +237,34 @@ export function useRecipesData() {
         try {
           const { data: dbGroups } = await supabase.from('family_groups').select('*');
           if (dbGroups && dbGroups.length > 0) {
-            setGroups(dbGroups);
-            localStorage.setItem('family_groups_v1', JSON.stringify(dbGroups));
+            const formattedGroups = dbGroups.map((g: any) => ({
+              id: g.id,
+              name: g.name,
+              createdBy: g.created_by || g.createdBy,
+              createdByName: g.created_by_name || g.createdByName,
+              members: g.members || [],
+              createdAt: g.created_at || g.createdAt
+            }));
+            setGroups(formattedGroups);
+            localStorage.setItem('family_groups_v1', JSON.stringify(formattedGroups));
           }
         } catch (e) {}
 
         try {
           const { data: dbInvites } = await supabase.from('group_invitations').select('*');
           if (dbInvites && dbInvites.length > 0) {
-            setInvitations(dbInvites);
-            localStorage.setItem('group_invitations_v1', JSON.stringify(dbInvites));
+            const formattedInvites = dbInvites.map((i: any) => ({
+              id: i.id,
+              groupId: i.group_id || i.groupId,
+              groupName: i.group_name || i.groupName,
+              invitedByUserId: i.invited_by_user_id || i.invitedByUserId,
+              invitedByName: i.invited_by_name || i.invitedByName,
+              invitedUserEmail: i.invited_user_email || i.invitedUserEmail,
+              status: i.status,
+              createdAt: i.created_at || i.createdAt
+            }));
+            setInvitations(formattedInvites);
+            localStorage.setItem('group_invitations_v1', JSON.stringify(formattedInvites));
           }
         } catch (e) {}
 
@@ -297,24 +346,77 @@ export function useRecipesData() {
           .channel('app-realtime-all')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'recipes' }, async () => {
             const { data } = await supabase.from('recipes').select('*').order('title', { ascending: true });
-            if (data) setRecipes(data);
+            if (data) {
+              const formattedRecipes: Recipe[] = data.map((r: any) => ({
+                ...r,
+                prepTime: r.prep_time || r.prepTime,
+                imageUrl: r.image_url || r.imageUrl,
+                imageGradient: r.image_gradient || r.imageGradient,
+                isPublic: r.is_public !== undefined ? r.is_public : r.isPublic,
+                isShared: r.is_shared !== undefined ? r.is_shared : (r.isShared !== undefined ? r.isShared : true),
+                groupId: r.group_id || r.groupId,
+                createdBy: r.created_by || r.createdBy,
+                creatorName: r.creator_name || r.creatorName,
+                creatorEmail: r.creator_email || r.creatorEmail,
+                approvedBy: r.approved_by || r.approvedBy,
+                approvedAt: r.approved_at || r.approvedAt
+              }));
+              setRecipes(formattedRecipes);
+            }
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'meal_planner' }, async () => {
             const { data } = await supabase.from('meal_planner').select('*');
-            if (data) setMealPlan(data);
+            if (data) {
+              const formattedMeals: MealPlanItem[] = data.map((m: any) => ({
+                id: m.id,
+                day: m.day,
+                meal: m.meal,
+                recipeId: m.recipe_id || m.recipeId || '',
+                customName: m.custom_name || m.customName || '',
+                items: m.items || [],
+                weekOffset: m.week_offset !== undefined ? m.week_offset : (m.weekOffset || 0),
+                weekKey: m.week_key || m.weekKey || getWeekKey(0),
+                completed: Boolean(m.completed),
+                isShared: m.is_shared !== undefined ? m.is_shared : (m.isShared !== undefined ? m.isShared : true),
+                groupId: m.group_id || m.groupId,
+                userId: m.user_id || m.userId,
+                dayNotes: m.day_notes || m.dayNotes,
+                dayPhotos: m.day_photos || m.dayPhotos,
+                dayExerciseOverrides: m.day_exercise_overrides || m.dayExerciseOverrides
+              }));
+              setMealPlan(formattedMeals);
+            }
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'family_groups' }, async () => {
             const { data } = await supabase.from('family_groups').select('*');
             if (data) {
-              setGroups(data);
-              localStorage.setItem('family_groups_v1', JSON.stringify(data));
+              const formattedGroups = data.map((g: any) => ({
+                id: g.id,
+                name: g.name,
+                createdBy: g.created_by || g.createdBy,
+                createdByName: g.created_by_name || g.createdByName,
+                members: g.members || [],
+                createdAt: g.created_at || g.createdAt
+              }));
+              setGroups(formattedGroups);
+              localStorage.setItem('family_groups_v1', JSON.stringify(formattedGroups));
             }
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'group_invitations' }, async () => {
             const { data } = await supabase.from('group_invitations').select('*');
             if (data) {
-              setInvitations(data);
-              localStorage.setItem('group_invitations_v1', JSON.stringify(data));
+              const formattedInvites = data.map((i: any) => ({
+                id: i.id,
+                groupId: i.group_id || i.groupId,
+                groupName: i.group_name || i.groupName,
+                invitedByUserId: i.invited_by_user_id || i.invitedByUserId,
+                invitedByName: i.invited_by_name || i.invitedByName,
+                invitedUserEmail: i.invited_user_email || i.invitedUserEmail,
+                status: i.status,
+                createdAt: i.created_at || i.createdAt
+              }));
+              setInvitations(formattedInvites);
+              localStorage.setItem('group_invitations_v1', JSON.stringify(formattedInvites));
             }
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, async () => {
@@ -588,9 +690,30 @@ export function useRecipesData() {
       approvedAt
     };
 
-    if (syncStatus === 'synced') {
+    if (syncStatus === 'synced' || (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)) {
       try {
-        const { error } = await supabase.from('recipes').insert([enrichedData]);
+        const { error } = await supabase.from('recipes').insert([{
+          id: enrichedData.id,
+          title: enrichedData.title,
+          description: enrichedData.description,
+          ingredients: enrichedData.ingredients,
+          instructions: enrichedData.instructions,
+          category: enrichedData.category,
+          prep_time: enrichedData.prepTime || enrichedData.prep_time || '20 דק׳',
+          image_url: enrichedData.image_url || enrichedData.imageUrl || null,
+          image_gradient: enrichedData.image_gradient || enrichedData.imageGradient || 'from-orange-500 to-amber-600',
+          is_public: Boolean(enrichedData.is_public || enrichedData.isPublic),
+          is_shared: enrichedData.isShared !== undefined ? enrichedData.isShared : true,
+          group_id: enrichedData.groupId || activeGroup?.id || null,
+          created_by: enrichedData.createdBy,
+          creator_name: enrichedData.creatorName,
+          creator_email: enrichedData.creatorEmail,
+          status: enrichedData.status || 'approved',
+          approved_by: enrichedData.approvedBy || null,
+          approved_at: enrichedData.approvedAt || null,
+          ratings: enrichedData.ratings || [],
+          comments: enrichedData.comments || []
+        }]);
         if (error) throw error;
       } catch (err) {
         console.error('Failed to save to Supabase, saving locally:', err);
@@ -855,11 +978,26 @@ export function useRecipesData() {
       status: nextStatus
     };
 
-    if (syncStatus === 'synced') {
+    if (syncStatus === 'synced' || (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)) {
       try {
         const { error } = await supabase
           .from('recipes')
-          .update(merged)
+          .update({
+            title: merged.title,
+            description: merged.description,
+            ingredients: merged.ingredients,
+            instructions: merged.instructions,
+            category: merged.category,
+            prep_time: merged.prepTime || merged.prep_time,
+            image_url: merged.image_url || merged.imageUrl || null,
+            image_gradient: merged.image_gradient || merged.imageGradient,
+            is_public: Boolean(merged.is_public || merged.isPublic),
+            is_shared: merged.isShared !== undefined ? merged.isShared : true,
+            group_id: merged.groupId || null,
+            status: merged.status,
+            ratings: merged.ratings || [],
+            comments: merged.comments || []
+          })
           .eq('id', id);
         if (error) throw error;
       } catch (err) {
@@ -993,15 +1131,18 @@ export function useRecipesData() {
             id: item.id || 'm_' + Date.now(),
             day: item.day,
             meal: item.meal,
-            recipeId: item.recipeId || '',
-            customName: item.customName || '',
+            recipe_id: item.recipeId || (item as any).recipe_id || '',
+            custom_name: item.customName || (item as any).custom_name || '',
             items: item.items || [],
-            isShared: item.isShared !== undefined ? item.isShared : true,
-            weekKey: item.weekKey || getWeekKey(0),
-            completed: item.completed || false,
-            dayNotes: item.dayNotes || '',
-            dayPhotos: item.dayPhotos || [],
-            dayExerciseOverrides: item.dayExerciseOverrides || []
+            week_offset: item.weekOffset !== undefined ? item.weekOffset : 0,
+            week_key: item.weekKey || getWeekKey(0),
+            completed: Boolean(item.completed),
+            is_shared: item.isShared !== undefined ? item.isShared : true,
+            group_id: item.groupId || activeGroup?.id || null,
+            user_id: item.userId || currentUser?.id || null,
+            day_notes: item.dayNotes || '',
+            day_photos: item.dayPhotos || [],
+            day_exercise_overrides: item.dayExerciseOverrides || []
           }))
         );
       } catch (err) {
@@ -2076,9 +2217,10 @@ export function useRecipesData() {
             const formatted: UserProfile[] = profiles.map((p: any) => ({
               id: p.id,
               email: p.email,
-              displayName: p.display_name || p.email.split('@')[0],
+              displayName: p.display_name || p.displayName || p.email.split('@')[0],
               role: p.role,
               isSuperAdmin: p.is_super_admin || isSuperAdminEmail(p.email),
+              isVerified: p.is_verified ?? true,
               isGuest: false
             }));
 
