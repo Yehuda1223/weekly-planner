@@ -1,37 +1,138 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
-    <!-- Premium Orange to Rose Gradient -->
-    <linearGradient id="calGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f97316" /> <!-- orange-500 -->
-      <stop offset="100%" stop-color="#e11d48" /> <!-- rose-600 -->
+    <!-- Background Squircle Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18181b" />
+      <stop offset="50%" stop-color="#09090b" />
+      <stop offset="100%" stop-color="#000000" />
+    </linearGradient>
+
+    <!-- Border Ring Gradient -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="50%" stop-color="#f97316" />
+      <stop offset="100%" stop-color="#e11d48" />
+    </linearGradient>
+
+    <!-- Ambient Core Radial Glow -->
+    <radialGradient id="ambientGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f97316" stop-opacity="0.5" />
+      <stop offset="60%" stop-color="#e11d48" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Day 1 - Sunday: Sun Amber -->
+    <linearGradient id="segSun" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+
+    <!-- Day 2 - Monday: Orange Flame -->
+    <linearGradient id="segMon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb923c" />
+      <stop offset="100%" stop-color="#ea580c" />
+    </linearGradient>
+
+    <!-- Day 3 - Tuesday: Coral Rose -->
+    <linearGradient id="segTue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f43f5e" />
+      <stop offset="100%" stop-color="#e11d48" />
+    </linearGradient>
+
+    <!-- Day 4 - Wednesday: Vivid Violet -->
+    <linearGradient id="segWed" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc" />
+      <stop offset="100%" stop-color="#9333ea" />
+    </linearGradient>
+
+    <!-- Day 5 - Thursday: Cyan Sky -->
+    <linearGradient id="segThu" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+
+    <!-- Day 6 - Friday: Emerald Success -->
+    <linearGradient id="segFri" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+
+    <!-- Day 7 - Saturday: Golden Sabbath -->
+    <linearGradient id="segSat" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+
+    <!-- Spark Gold Gradient -->
+    <linearGradient id="sparkGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fffbeb" />
+      <stop offset="30%" stop-color="#fde047" />
+      <stop offset="70%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#ea580c" />
     </linearGradient>
   </defs>
-  
-  <!-- Outer Squircle (Superellipse rounded rectangle) -->
-  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#calGrad)" />
-  
-  <!-- Calendar Vector Graphic -->
-  <g transform="translate(106, 96)" fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
-    <!-- Binder Rings / Pins -->
-    <line x1="70" y1="20" x2="70" y2="70" stroke-width="24" />
-    <line x1="230" y1="20" x2="230" y2="70" stroke-width="24" />
 
-    <!-- Calendar Body -->
-    <rect x="20" y="50" width="260" height="250" rx="36" fill="#ffffff" fill-opacity="0.18" stroke="#ffffff" stroke-width="20" />
-    
-    <!-- Calendar Header Line -->
-    <line x1="20" y1="125" x2="280" y2="125" stroke-width="16" stroke-opacity="0.8" />
+  <!-- Outer Squircle with Golden/Coral Rim -->
+  <rect x="16" y="16" width="480" height="480" rx="116" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="12" />
 
-    <!-- Calendar Grid Dots / Checks -->
-    <!-- Row 1 -->
-    <circle cx="75" cy="175" r="12" fill="#ffffff" stroke="none" />
-    <circle cx="150" cy="175" r="12" fill="#ffffff" stroke="none" />
-    <circle cx="225" cy="175" r="12" fill="#ffffff" stroke="none" />
+  <!-- Ambient Glow in Center -->
+  <circle cx="256" cy="256" r="210" fill="url(#ambientGlow)" />
 
-    <!-- Row 2 -->
-    <circle cx="75" cy="235" r="12" fill="#ffffff" stroke="none" />
-    <!-- Center check / star -->
-    <path d="M 140, 235 L 148, 245 L 165, 225" stroke="#ffffff" stroke-width="18" fill="none" />
-    <circle cx="225" cy="235" r="12" fill="#ffffff" stroke="none" />
+  <!-- Subtle Dashed Orbit Track -->
+  <circle cx="256" cy="256" r="160" stroke="#3f3f46" stroke-width="6" stroke-dasharray="14 14" opacity="0.5" fill="none" />
+
+  <!-- The 7 Weekly Momentum Segments (Orbital Arcs) -->
+  <g stroke-width="22" stroke-linecap="round" fill="none">
+    <!-- Day 1 (Top / Sunday) -->
+    <path d="M 230 84 A 172 172 0 0 1 296 85" stroke="url(#segSun)" />
+
+    <!-- Day 2 (Top Right / Monday) -->
+    <path d="M 346 106 A 172 172 0 0 1 411 171" stroke="url(#segMon)" />
+
+    <!-- Day 3 (Bottom Right / Tuesday) -->
+    <path d="M 428 231 A 172 172 0 0 1 403 317" stroke="url(#segTue)" />
+
+    <!-- Day 4 (Bottom / Wednesday) -->
+    <path d="M 348 382 A 172 172 0 0 1 256 428" stroke="url(#segWed)" />
+
+    <!-- Day 5 (Bottom Left / Thursday) -->
+    <path d="M 195 418 A 172 172 0 0 1 110 348" stroke="url(#segThu)" />
+
+    <!-- Day 6 (Top Left / Friday) -->
+    <path d="M 84 286 A 172 172 0 0 1 99 192" stroke="url(#segFri)" />
+
+    <!-- Day 7 (Top-Top Left / Saturday) -->
+    <path d="M 130 144 A 172 172 0 0 1 196 95" stroke="url(#segSat)" />
+  </g>
+
+  <!-- Orbital Node Beads -->
+  <circle cx="256" cy="80" r="12" fill="#fde047" />
+  <circle cx="380" cy="136" r="12" fill="#fb923c" />
+  <circle cx="425" cy="272" r="12" fill="#f43f5e" />
+  <circle cx="305" cy="412" r="12" fill="#c084fc" />
+  <circle cx="145" cy="390" r="12" fill="#38bdf8" />
+  <circle cx="87" cy="245" r="12" fill="#34d399" />
+  <circle cx="158" cy="116" r="12" fill="#fbbf24" />
+
+  <!-- Center Target Core & Dynamic Momentum Star -->
+  <g>
+    <!-- Central Plate Disc -->
+    <circle cx="256" cy="256" r="95" fill="#18181b" stroke="#3f3f46" stroke-width="7" />
+    <circle cx="256" cy="256" r="85" fill="url(#sparkGold)" fill-opacity="0.12" />
+
+    <!-- 4-Point Momentum Spark Flares -->
+    <path 
+      d="M 256 178 C 256 220 220 256 178 256 C 220 256 256 292 256 334 C 256 292 292 256 334 256 C 292 256 256 220 256 178 Z" 
+      fill="url(#sparkGold)" 
+    />
+
+    <!-- Diamond Core Highlight -->
+    <path 
+      d="M 256 216 L 278 256 L 256 296 L 234 256 Z" 
+      fill="#ffffff" 
+    />
+
+    <!-- Center Pulse Core -->
+    <circle cx="256" cy="256" r="10" fill="#ea580c" />
   </g>
 </svg>
